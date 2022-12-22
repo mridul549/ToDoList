@@ -5,7 +5,7 @@ const path       = require('path')
 const date       = require(__dirname + "/date.js");
 
 const app = express();
-let day = date.getDate();
+let day   = date.getDate();
 
 app.set('view engine', 'ejs');
 app.set('views',path.join(__dirname,'views'));
@@ -28,7 +28,7 @@ const List = mongoose.model("List",listSchema);
 const Item = mongoose.model("Item",itemsSchema);
 
 const item1 = new Item ({
-    name: "Welcome to the To Do List!"
+    name: "Welcome to Jot It"
 })
 
 const item2 = new Item ({
@@ -56,7 +56,7 @@ app.get('/',function(req,res){
                 })   
                 res.redirect("/");
             } else {
-                res.render("list",{listTitle: day, newListItem: items});
+                res.render("list",{listTitle: "Today", newListItem: items});
             }
         }
     })
@@ -84,10 +84,11 @@ app.get("/:topic",function(req,res){
 app.post("/",function(req,res){
     let itemName = req.body.newItem;
     let listName = req.body.list; 
+    console.log(listName);
     const newItem = new Item ({
         name: itemName
     })
-    if(listName==day){
+    if(listName=="Today"){
         newItem.save();
         res.redirect("/");
     } else {
@@ -100,12 +101,24 @@ app.post("/",function(req,res){
 })
 
 app.post("/delete",function(req,res){
-    const docID = req.body.checkBox;
-    Item.findByIdAndRemove(docID,function(err){
-        if(!err){
-            res.redirect("/");
-        }
-    })
+    const checkedItemID = req.body.checkBox;
+    const listName = req.body.list;
+
+    if(listName==="Today"){
+        Item.findByIdAndRemove(checkedItemID,function(err){
+            if(!err){
+                console.log("deleted");
+                res.redirect("/");
+            }
+        })
+    } else {
+        List.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkedItemID}}}, function(err,foundList){
+            if(!err){
+                res.redirect("/"+listName);
+            }
+        })
+    }
+
 })
 
 app.listen(3000, function(){
